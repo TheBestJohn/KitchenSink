@@ -1,0 +1,60 @@
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kitchensink-audio"
+version = "0.1.0"
+description = "A modular library for building audio processing pipelines in Python."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "TheBestJohn", email = "john@TheBestJohn.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Sound/Audio",
+]
+
+dependencies = [
+    "numpy>=1.20.0",
+    "sounddevice>=0.4.6",
+]
+
+[project.optional-dependencies]
+# Extra for low-latency audio on Windows.
+# To install: pip install kitchensink-audio[win_bleeding_edge]
+win_bleeding_edge = [
+    "winsdk>=1.0.0b10",
+    "comtypes>=1.2.0",
+]
+
+# Extra for running the test suite.
+# To install: pip install kitchensink-audio[test]
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.20.0",
+]
+
+# Extra for using WebSocket components.
+# To install: pip install kitchensink-audio[websockets]
+websockets = [
+    "websockets>=12.0",
+]
+
+# Extra for building the documentation.
+# To install: pip install kitchensink-audio[docs]
+docs = [
+    "Sphinx>=7.0.0",
+    "furo>=2024.4.26",
+    "sphinx-autobuild>=2021.3.14",
+    "myst-parser>=2.0.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/TheBestJohn/kitchensink"
+"Bug Tracker" = "https://github.com/TheBestJohn/kitchensink/issues"
