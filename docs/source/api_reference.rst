@@ -6,29 +6,30 @@ This page provides an auto-generated summary of the KitchenSink Audio library's 
 
 Sources
 -------
+
 Sources are responsible for acquiring audio data.
 
-.. autoclass:: KitchenSink.sources.base_source.BaseAudioSource
+.. autoclass:: kitchensink.sources.base_source.BaseAudioSource
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: KitchenSink.sources.line_in_source.LineInAudioSource
+.. autoclass:: kitchensink.sources.line_in_source.LineInAudioSource
    :members: list_input_devices
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: KitchenSink.sources.network_audio_source.TCPServerAudioSource
+.. autoclass:: kitchensink.sources.network_audio_source.TCPServerAudioSource
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: KitchenSink.sources.raw_websocket_audio_source.RawWebSocketServerAudioSource
+.. autoclass:: kitchensink.sources.raw_websocket_audio_source.RawWebSocketServerAudioSource
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: KitchenSink.sources.typed_websocket_audio_source.TypedWebSocketServerAudioSource
+.. autoclass:: kitchensink.sources.typed_websocket_audio_source.TypedWebSocketServerAudioSource
    :members:
    :undoc-members:
    :show-inheritance:
@@ -36,26 +37,27 @@ Sources are responsible for acquiring audio data.
 
 Sinks
 -----
+
 Sinks are the destination for audio data.
 
-.. autoclass:: KitchenSink.sinks.base_sink.BaseAudioSink
+.. autoclass:: kitchensink.sinks.base_sink.BaseAudioSink
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automethod:: KitchenSink.sinks.audio_player_sink.AudioPlayerSink
+.. automethod:: kitchensink.sinks.audio_player_sink.AudioPlayerSink
 
-.. autoclass:: KitchenSink.sinks.network_audio_sink.TCPClientAudioSink
+.. autoclass:: kitchensink.sinks.network_audio_sink.TCPClientAudioSink
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: KitchenSink.sinks.raw_websocket_audio_sink.RawWebSocketClientAudioSink
+.. autoclass:: kitchensink.sinks.raw_websocket_audio_sink.RawWebSocketClientAudioSink
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: KitchenSink.sinks.typed_websocket_audio_sink.TypedWebSocketClientAudioSink
+.. autoclass:: kitchensink.sinks.typed_websocket_audio_sink.TypedWebSocketClientAudioSink
    :members:
    :undoc-members:
    :show-inheritance:
@@ -63,4 +65,4 @@ Sinks are the destination for audio data.
 Utilities
 ---------
 
-.. automethod:: KitchenSink.utils.select_audio_device
+.. automethod:: kitchensink.utils.select_audio_device
