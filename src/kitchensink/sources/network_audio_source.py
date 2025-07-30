@@ -8,7 +8,7 @@ class TCPServerAudioSource(BaseAudioSource):
     receives audio data, processes it, and pushes it to a provided sink.
     """
 
-    def __init__(self, sink, disconnect_callback=None, host='0.0.0.0', port=8123, gain_factor=1.0, chunk_size=960):
+    def __init__(self, sink, disconnect_callback=None, host='0.0.0.0', port=8123, gain_factor=1.0, blocksize=960):
         """
         Initializes the TCPServerAudioSource.
 
@@ -18,14 +18,12 @@ class TCPServerAudioSource(BaseAudioSource):
             host (str): The host address to listen on.
             port (int): The port to listen on.
             gain_factor (float): Factor to amplify the incoming audio.
-            chunk_size (int): The number of frames per audio chunk.
+            blocksize (int): The number of frames per audio chunk.
         """
-        super().__init__(sink, disconnect_callback)
+        super().__init__(sink, disconnect_callback, blocksize=blocksize)
         self.host = host
         self.port = port
         self.gain_factor = gain_factor
-        self.chunk_size = chunk_size  # Number of frames (int16)
-        self.chunk_bytes = chunk_size * 2  # Each int16 frame is 2 bytes
         self.server = None
 
     async def _handle_client(self, reader, writer):
@@ -33,9 +31,12 @@ class TCPServerAudioSource(BaseAudioSource):
         addr = writer.get_extra_info('peername')
         print(f"[*] Accepted connection from {addr[0]}:{addr[1]}")
 
+        # Each int16 frame is 2 bytes
+        chunk_bytes = self.blocksize * 2
+
         try:
             while True:
-                data = await reader.readexactly(self.chunk_bytes)
+                data = await reader.readexactly(chunk_bytes)
                 if not data:
                     break
 

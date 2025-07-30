@@ -72,6 +72,24 @@ This pattern allows you to use the sources in this library as a generic way to
 receive audio for any purpose.
 
 
+Blocksize and Latency
+---------------------
+
+The ``blocksize`` parameter, available in most sources and sinks, defines the
+number of audio frames per chunk. This is a key parameter for controlling
+latency and performance.
+
+*   **In Sources**: It determines how frequently the source will generate and
+    push audio chunks to the sink.
+*   **In Sinks**: It serves as a hint to the source about the preferred chunk
+    size for optimal processing (e.g., matching the buffer size of the
+    audio output device).
+
+A smaller ``blocksize`` reduces latency but increases the overhead of function
+calls and network packets. A larger ``blocksize`` is more efficient but
+introduces more delay. The ideal value depends on the application's requirements.
+
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:

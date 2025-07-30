@@ -34,6 +34,14 @@ You connect components by passing a callable (like a sink's `push_chunk` method 
 - **Middleware**: Chain components to process audio mid-stream. `[Mic Source] -> [Volume Monitor] -> [Network Sink]`
 - **Consumers**: End a pipeline with a function instead of a sink. `[Network Source] -> [Speech-to-Text Function]`
 
+### 4. Blocksize: Managing Audio Chunks
+The `blocksize` parameter, available in most sources and sinks, defines the number of audio frames per chunk. This is a key parameter for controlling latency and performance.
+
+- **In Sources**: It determines how frequently the source will generate and push audio chunks to the sink.
+- **In Sinks**: It serves as a hint to the source about the preferred chunk size for optimal processing (e.g., matching the buffer size of the audio output device).
+
+A smaller `blocksize` reduces latency but increases the overhead of function calls and network packets. A larger `blocksize` is more efficient but introduces more delay. The ideal value depends on the application's requirements.
+
 ## Installation
 
 Install the library using `pip`:
@@ -53,13 +61,13 @@ pip install .[win_bleeding_edge]
 ## Components
 
 ### Sources
--   **`LineInAudioSource`**: Captures audio from a local microphone/line-in.
--   **`TCPServerAudioSource`**: Listens for a single raw TCP client connection and receives audio data.
--   **`RawWebSocketServerAudioSource`**: Listens for a single WebSocket client and receives raw binary audio data.
--   **`TypedWebSocketServerAudioSource`**: Listens for a WebSocket client and handles structured JSON messages for audio, text, or custom events.
+-   **`LineInAudioSource`**: Captures audio from a local microphone/line-in. `blocksize` controls the chunk size.
+-   **`TCPServerAudioSource`**: Listens for a single raw TCP client connection and receives audio data. `blocksize` defines the expected size of incoming data chunks.
+-   **`RawWebSocketServerAudioSource`**: Listens for a single WebSocket client and receives raw binary audio data. It processes whatever chunk size it receives but can be initialized with a `blocksize` for consistency.
+-   **`TypedWebSocketServerAudioSource`**: Listens for a WebSocket client and handles structured JSON messages. It also processes any received chunk size.
 
 ### Sinks
--   **`AudioPlayerSink`**: Plays audio to local speakers. Uses `WinSDK` for low-latency on Windows if available, otherwise falls back to `sounddevice`.
+-   **`AudioPlayerSink`**: Plays audio to local speakers. `blocksize` can hint to the source about the preferred chunk size for the audio device.
 -   **`TCPClientAudioSink`**: Connects to a raw TCP server and sends audio data.
 -   **`RawWebSocketClientAudioSink`**: Connects to a WebSocket server and sends raw binary audio data.
 -   **`TypedWebSocketClientAudioSink`**: Connects to a WebSocket server and sends structured JSON messages.

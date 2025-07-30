@@ -10,16 +10,16 @@ class TCPClientAudioSink(BaseAudioSink):
     An audio sink that connects to a TCP server and sends audio chunks.
     """
 
-    def __init__(self, host, port, sample_rate=16000, channels=1, dtype='int16'):
+    def __init__(self, host, port, sample_rate=16000, channels=1, dtype='int16', blocksize=None):
         """
         Initializes the TCPClientAudioSink.
 
         Args:
             host (str): The hostname or IP address of the server to connect to.
             port (int): The port of the server.
-            sample_rate, channels, dtype: Audio properties, passed to BaseAudioSink.
+            sample_rate, channels, dtype, blocksize: Passed to BaseAudioSink.
         """
-        super().__init__(sample_rate, channels, dtype)
+        super().__init__(sample_rate, channels, dtype, blocksize)
         self.host = host
         self.port = port
         self._writer = None

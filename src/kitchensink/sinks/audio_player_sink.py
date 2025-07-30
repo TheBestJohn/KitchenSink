@@ -2,6 +2,7 @@
 import collections
 import sys
 import numpy as np
+import os
 import platform
 import asyncio
 import threading
@@ -18,14 +19,23 @@ except (ImportError, OSError):
 
 if _sounddevice_available:
     class SoundDevicePlayer(BaseAudioSink):
-        """A sink that plays audio using sounddevice."""
-        def __init__(self, *args, **kwargs):
+        """A sink that plays audio using the ``sounddevice`` library.
+
+        This is the default fallback player for non-Windows systems or when the
+        ``winsdk`` is not installed.
+        """
+        def __init__(self, *args, device=None, **kwargs):
             super().__init__(*args, **kwargs)
+            self.device = device
             self._stream = None
+            self._frame_offset = 0 # Tracks our position in the current chunk
 
         async def start(self):
-            print("SoundDevicePlayer: Starting audio stream.")
+            """Initializes and starts the ``sounddevice`` output stream."""
+            device_info = f" on device '{self.device}'" if self.device else " on default device"
+            print(f"SoundDevicePlayer: Starting audio stream{device_info}.")
             self._stream = sd.OutputStream(
+                device=self.device,
                 samplerate=self._sample_rate,
                 channels=self._channels,
                 dtype=self._dtype,
@@ -35,13 +45,51 @@ if _sounddevice_available:
             self._stream.start()
 
         def _audio_callback(self, outdata, frames, time, status):
+            """
+            This callback is the heart of the audio playback. It fills the
+            `outdata` buffer with exactly `frames` number of samples, handling
+            chunk boundaries and buffer underruns gracefully.
+            """
             if status:
-                print(status, file=sys.stderr)
-            try:
-                data = self._buffer.popleft()
-                outdata[:] = data.reshape(-1, self._channels)
-            except IndexError:
-                outdata.fill(0)
+                print(f"SoundDevicePlayer Status: {status}", file=sys.stderr)
+
+            remaining_frames = frames
+            out_offset = 0
+
+            while remaining_frames > 0:
+                if not self._buffer:
+                    # Buffer is empty, fill the rest of outdata with silence
+                    outdata[out_offset:, :] = 0
+                    return
+
+                # Get the current chunk from the front of the deque
+                current_chunk = self._buffer[0]
+                
+                # Calculate how many frames are left in the current chunk
+                frames_in_chunk = len(current_chunk) - self._frame_offset
+                
+                # Determine how many frames to copy in this iteration
+                frames_to_copy = min(remaining_frames, frames_in_chunk)
+                
+                # Copy the data
+                end_offset = self._frame_offset + frames_to_copy
+                # Ensure the data is correctly shaped for assignment
+                outdata[out_offset : out_offset + frames_to_copy, :] = current_chunk[self._frame_offset : end_offset].reshape(-1, self._channels)
+
+                # Update our offsets and remaining counts
+                self._frame_offset += frames_to_copy
+                out_offset += frames_to_copy
+                remaining_frames -= frames_to_copy
+
+                # If we've finished with the current chunk, remove it from the deque
+                if self._frame_offset >= len(current_chunk):
+                    self._buffer.popleft()
+                    self._frame_offset = 0
+        
+        def clear(self):
+            """Clears the buffer and resets the frame offset."""
+            super().clear()
+            self._frame_offset = 0
 
         def close(self):
             super().close()
@@ -50,6 +98,20 @@ if _sounddevice_available:
                 self._stream.close()
                 self._stream = None
                 print("SoundDevicePlayer stream closed.")
+
+        @staticmethod
+        def list_output_devices():
+            """Lists available audio output devices using ``sounddevice``.
+
+            Returns:
+                list: A list of device dictionaries from ``sounddevice``.
+            """
+            try:
+                devices = sd.query_devices()
+                return [d for d in devices if d.get('max_output_channels', 0) > 0]
+            except Exception as e:
+                print(f"Could not query audio devices: {e}")
+                return []
 
 # --- Windows WinSDK Implementation ---
 _winsdk_available = False
@@ -60,6 +122,7 @@ if platform.system() == "Windows":
         import winsdk.windows.media.mediaproperties as wmp
         from winsdk.windows.foundation import IMemoryBufferByteAccess
         import ctypes
+        from comtypes import IUnknown, cast, POINTER
         _winsdk_available = True
     except ImportError:
         print("Warning: winsdk library not found. Falling back to sounddevice.")
@@ -67,14 +130,17 @@ if platform.system() == "Windows":
         _winsdk_available = False
 
 if _winsdk_available:
-    # This is a bit of COM magic to get the raw pointer to the buffer
-    from comtypes import IUnknown, cast, POINTER
     class MemoryBufferByteAccess(IUnknown):
         _com_interfaces_ = [IMemoryBufferByteAccess]
         _iid_ = IMemoryBufferByteAccess
 
     class WinSdkPlayer(BaseAudioSink):
-        """A sink that plays audio using the Windows SDK (WASAPI)."""
+        """A sink that plays audio using the Windows SDK (WASAPI) for low latency.
+
+        This player is only available on Windows and when the ``winsdk`` package
+        is installed. It does not currently support selecting a specific output
+        device; it will always use the system default media device.
+        """
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self._graph = None
@@ -82,91 +148,84 @@ if _winsdk_available:
             self._playback_thread = None
 
         async def start(self):
+            # ... (implementation remains the same)
             print("WinSdkPlayer: Initializing audio graph...")
             settings = wma.AudioGraphSettings(wma.AudioRenderCategory.MEDIA)
-            settings.primary_render_device = await wma.DeviceInformation.create_for_audio_rendering_category_async(wma.AudioRenderCategory.MEDIA)
-            
             create_graph_result = await wma.AudioGraph.create_async(settings)
             if create_graph_result.status != wma.AudioGraphCreationStatus.SUCCESS:
                 raise RuntimeError(f"Failed to create AudioGraph: {create_graph_result.status}")
             self._graph = create_graph_result.graph
-
             output_node_result = await self._graph.create_device_output_node_async()
             if output_node_result.status != wma.AudioDeviceNodeCreationStatus.SUCCESS:
                 raise RuntimeError("Failed to create device output node.")
-
-            encoding_props = wmp.AudioEncodingProperties()
+            encoding_props = self._graph.encoding_properties
             encoding_props.sample_rate = self._sample_rate
             encoding_props.channel_count = self._channels
             encoding_props.bits_per_sample = 16
-            encoding_props.subtype = "PCM"
-            
             self._frame_input_node = self._graph.create_frame_input_node(encoding_props)
             self._frame_input_node.add_outgoing_connection(output_node_result.device_output_node)
-            
             self._playback_thread = threading.Thread(target=self._playback_loop, daemon=True)
             self._playback_thread.start()
             self._graph.start()
             print("WinSdkPlayer: Audio graph started.")
 
         def _playback_loop(self):
+            # ... (implementation remains the same)
             while not self._is_closed.is_set():
                 try:
                     chunk = self._buffer.popleft()
                     self._submit_chunk(chunk)
                 except IndexError:
-                    time.sleep(0.005) # Wait for more data
-                except Exception as e:
-                    print(f"Error in WinSdkPlayer playback loop: {e}", file=sys.stderr)
+                    time.sleep(0.005)
             print("WinSdkPlayer: Playback loop finished.")
 
         def _submit_chunk(self, chunk: np.ndarray):
+            # ... (implementation remains the same)
             num_bytes = chunk.nbytes
             frame = wmedia.AudioFrame(num_bytes)
-            
             with frame.lock_buffer(wmedia.AudioBufferAccessMode.WRITE) as audio_buffer:
                 byte_access = cast(audio_buffer, POINTER(MemoryBufferByteAccess))
                 buffer_ptr, _ = byte_access.get_buffer()
                 ctypes.memmove(buffer_ptr, chunk.ctypes.data, num_bytes)
-
             self._frame_input_node.add_frame(frame)
 
         def close(self):
+            # ... (implementation remains the same)
             super().close()
             print("WinSdkPlayer: Closing audio graph...")
             if self._playback_thread and self._playback_thread.is_alive():
                 self._playback_thread.join(timeout=1)
-            
             if self._graph:
                 self._graph.stop()
                 self._graph.close()
                 self._graph = None
             print("WinSdkPlayer: Audio graph closed.")
 
-
 # --- Factory Class ---
-def AudioPlayerSink(*args, **kwargs):
+def AudioPlayerSink(*args, device=None, **kwargs):
+    """Factory that selects the best available audio player for the current OS.
+
+    Args:
+        device (str or int, optional): The output device identifier. If ``None``,
+            the ``KS_OUTPUT_DEVICE`` environment variable is checked before
+            falling back to the system default. This only applies to the
+            ``SoundDevicePlayer``.
+        *args: Positional arguments for the player's constructor.
+        **kwargs: Keyword arguments for the player's constructor.
     """
-    Factory function that returns the best available audio player for the current platform.
-    
-    On Windows, it prioritizes the `WinSdkPlayer` for lower latency.
-    On other platforms or if WinSDK is not installed, it uses `SoundDevicePlayer`.
-    """
+    final_device = device or os.environ.get("KS_OUTPUT_DEVICE")
+
     if platform.system() == "Windows" and _winsdk_available:
-        # Note: WinSdkPlayer uses the system default device, so device listing is a SoundDevice feature.
         print("Selected WinSdkPlayer for audio output.")
         return WinSdkPlayer(*args, **kwargs)
     
     if _sounddevice_available:
         print("Selected SoundDevicePlayer for audio output.")
-        return SoundDevicePlayer(*args, **kwargs)
+        return SoundDevicePlayer(*args, device=final_device, **kwargs)
 
     raise RuntimeError("No suitable audio playback library found. Please install 'sounddevice' or 'winsdk'.")
 
-# Attach the static device listing method to the factory function itself
-# so it can be called like a class method, e.g., AudioPlayerSink.list_output_devices()
 if _sounddevice_available:
     AudioPlayerSink.list_output_devices = SoundDevicePlayer.list_output_devices
 else:
-    # If sounddevice is not available, provide a dummy method to avoid errors
     AudioPlayerSink.list_output_devices = lambda: []

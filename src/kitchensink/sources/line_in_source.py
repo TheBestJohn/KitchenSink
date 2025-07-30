@@ -11,7 +11,7 @@ class LineInAudioSource(BaseAudioSource):
     An audio source that captures audio from a local line-in/microphone.
     """
 
-    def __init__(self, sink, disconnect_callback=None, sample_rate=16000, channels=1, dtype='int16', chunk_size=1024, device=None):
+    def __init__(self, sink, disconnect_callback=None, sample_rate=16000, channels=1, dtype='int16', blocksize=1024, device=None):
         """
         Initializes the LineInAudioSource.
 
@@ -20,15 +20,14 @@ class LineInAudioSource(BaseAudioSource):
             sample_rate (int): The sample rate for capturing audio.
             channels (int): The number of channels for capturing audio.
             dtype (str): The data type of the audio.
-            chunk_size (int): The number of frames per chunk to read from the microphone.
+            blocksize (int): The number of frames per chunk to read from the microphone.
             device (str or int, optional): The input device to use. If None, it checks the
                                            KS_INPUT_DEVICE env var, otherwise uses the system default.
         """
-        super().__init__(sink, disconnect_callback)
+        super().__init__(sink, disconnect_callback, blocksize=blocksize)
         self.sample_rate = sample_rate
         self.channels = channels
         self.dtype = dtype
-        self.chunk_size = chunk_size
         self.device = device or os.environ.get("KS_INPUT_DEVICE")
         self._stream = None
         self._stop_event = threading.Event()
@@ -51,7 +50,7 @@ class LineInAudioSource(BaseAudioSource):
                 samplerate=self.sample_rate,
                 channels=self.channels,
                 dtype=self.dtype,
-                blocksize=self.chunk_size,
+                blocksize=self.blocksize,
                 callback=self._audio_callback
             )
             with self._stream:

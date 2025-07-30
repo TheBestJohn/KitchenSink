@@ -14,15 +14,15 @@ class TypedWebSocketClientAudioSink(BaseAudioSink):
     both audio (as Base64 JSON) and other message types.
     """
 
-    def __init__(self, uri, sample_rate=16000, channels=1, dtype='int16'):
+    def __init__(self, uri, sample_rate=16000, channels=1, dtype='int16', blocksize=None):
         """
         Initializes the TypedWebSocketClientAudioSink.
 
         Args:
             uri (str): The WebSocket URI to connect to (e.g., "ws://localhost:8765").
-            sample_rate, channels, dtype: Audio properties, passed to BaseAudioSink.
+            sample_rate, channels, dtype, blocksize: Passed to BaseAudioSink.
         """
-        super().__init__(sample_rate, channels, dtype)
+        super().__init__(sample_rate, channels, dtype, blocksize)
         self.uri = uri
         self._websocket = None
         self._loop = None

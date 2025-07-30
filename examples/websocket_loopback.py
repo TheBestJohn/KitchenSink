@@ -3,14 +3,13 @@ import asyncio
 import sys
 import os
 
-# Add the project's root directory to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-
-from KitchenSink.sources.line_in_source import LineInAudioSource
-from KitchenSink.sinks.typed_websocket_audio_sink import TypedWebSocketClientAudioSink
-from KitchenSink.sources.typed_websocket_audio_source import TypedWebSocketServerAudioSource
-from KitchenSink.sinks.audio_player_sink import AudioPlayerSink
-from KitchenSink.utils import select_audio_device
+# When the library is installed (e.g., with `pip install -e .`),
+# the kitchensink package is available to be imported directly.
+from kitchensink.sources.line_in_source import LineInAudioSource
+from kitchensink.sinks.typed_websocket_audio_sink import TypedWebSocketClientAudioSink
+from kitchensink.sources.typed_websocket_audio_source import TypedWebSocketServerAudioSource
+from kitchensink.sinks.audio_player_sink import AudioPlayerSink
+from kitchensink.utils import select_audio_device
 
 # --- Configuration ---
 HOST = '127.0.0.1'

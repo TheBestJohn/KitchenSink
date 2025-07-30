@@ -19,7 +19,7 @@ class TypedWebSocketServerAudioSource(BaseAudioSource):
     For "audio", the payload should be a Base64-encoded string of the raw audio bytes.
     """
 
-    def __init__(self, sink, disconnect_callback=None, on_message_callback=None, host='0.0.0.0', port=8765):
+    def __init__(self, sink, disconnect_callback=None, on_message_callback=None, host='0.0.0.0', port=8765, blocksize=None):
         """
         Initializes the TypedWebSocketServerAudioSource.
 
@@ -30,8 +30,10 @@ class TypedWebSocketServerAudioSource(BaseAudioSource):
                                                      and the message payload (dict/str).
             host (str): The host address to listen on.
             port (int): The port to listen on.
+            blocksize (int, optional): The preferred blocksize for audio chunks.
+                                       Note: This source processes whatever it receives.
         """
-        super().__init__(sink, disconnect_callback)
+        super().__init__(sink, disconnect_callback, blocksize=blocksize)
         self.on_message_callback = on_message_callback
         self.host = host
         self.port = port

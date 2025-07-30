@@ -7,7 +7,7 @@ class BaseAudioSource:
     (e.g., a network stream, a microphone) and forwarding it to a callable 'sink'.
     """
 
-    def __init__(self, sink, disconnect_callback=None):
+    def __init__(self, sink, disconnect_callback=None, blocksize=None):
         """
         Initializes the BaseAudioSource.
 
@@ -16,6 +16,9 @@ class BaseAudioSource:
                              It must accept one argument: a NumPy array of audio data.
             disconnect_callback (callable, optional): A callable that is invoked when the source
                                                      is disconnected or stops. Defaults to None.
+            blocksize (int, optional): The number of frames per chunk for the
+                source to generate. If ``None``, the source may attempt to use the
+                sink's preferred blocksize.
         """
         if not callable(sink):
             raise TypeError("The sink must be a callable (e.g., a function or a method).")
@@ -24,7 +27,7 @@ class BaseAudioSource:
             
         self.sink = sink
         self.disconnect_callback = disconnect_callback
-
+        self.blocksize = blocksize
     async def start(self):
         """
         Starts the audio source. This method should handle any setup required,

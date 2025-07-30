@@ -2,12 +2,11 @@ import asyncio
 import sys
 import os
 
-# Add the project's root directory to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-
-from KitchenSink.sources.network_audio_source import TCPServerAudioSource
-from KitchenSink.sinks.audio_player_sink import AudioPlayerSink
-from KitchenSink.utils import select_audio_device
+# When the library is installed (e.g., with `pip install -e .`),
+# the kitchensink package is available to be imported directly.
+from kitchensink.sources.network_audio_source import TCPServerAudioSource
+from kitchensink.sinks.audio_player_sink import AudioPlayerSink
+from kitchensink.utils import select_audio_device
 
 
 async def main():

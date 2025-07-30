@@ -1,16 +1,15 @@
-
 import pytest
 import asyncio
 import numpy as np
 
 # Import the classes we want to test
-from KitchenSink.sinks.base_sink import BaseAudioSink
-from KitchenSink.sources.base_source import BaseAudioSource
+from kitchensink.sinks.base_sink import BaseAudioSink
+from kitchensink.sources.base_source import BaseAudioSource
 
 # Since the factory pattern is used, we import the factory function directly.
 # We will also import the specific classes to test their instantiation.
-from KitchenSink.sinks.audio_player_sink import AudioPlayerSink, SoundDevicePlayer
-from KitchenSink.sources.line_in_source import LineInAudioSource
+from kitchensink.sinks.audio_player_sink import AudioPlayerSink, SoundDevicePlayer
+from kitchensink.sources.line_in_source import LineInAudioSource
 
 # Marking all tests in this file to be run with asyncio
 pytestmark = pytest.mark.asyncio

@@ -6,9 +6,9 @@ import os
 # Add the project's root directory to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-from KitchenSink.sources.line_in_source import LineInAudioSource
-from KitchenSink.sinks.network_audio_sink import TCPClientAudioSink
-from KitchenSink.utils import select_audio_device
+from kitchensink.sources.line_in_source import LineInAudioSource
+from kitchensink.sinks.network_audio_sink import TCPClientAudioSink
+from kitchensink.utils import select_audio_device
 
 # --- Configuration ---
 # Server details (this should be the IP and Port of the machine running network_to_speaker.py)
