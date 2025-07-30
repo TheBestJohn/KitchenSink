@@ -19,7 +19,8 @@ WEBSOCKET_URI = f"ws://{HOST}:{PORT}"
 SAMPLE_RATE = 16000
 CHANNELS = 1
 DTYPE = 'int16'
-CHUNK_SIZE = 1024
+# Use a smaller blocksize for lower latency, suitable for a loopback test
+BLOCKSIZE = 480
 
 
 async def main():
@@ -47,7 +48,14 @@ async def main():
         output_devices = AudioPlayerSink.list_output_devices()
         speaker_device = select_audio_device(output_devices, direction='output')
         
-        speaker_sink = AudioPlayerSink(sample_rate=SAMPLE_RATE, channels=CHANNELS, device=speaker_device)
+        # For a loopback test, it's ideal if the player sink's preferred blocksize
+        # matches the source's blocksize.
+        speaker_sink = AudioPlayerSink(
+            sample_rate=SAMPLE_RATE, 
+            channels=CHANNELS, 
+            device=speaker_device,
+            blocksize=BLOCKSIZE
+        )
         await speaker_sink.start()
 
         # The WebSocket server will feed audio into the speaker sink
@@ -55,7 +63,8 @@ async def main():
             sink=speaker_sink.push_chunk,
             disconnect_callback=speaker_sink.clear,
             host=HOST,
-            port=PORT
+            port=PORT,
+            blocksize=BLOCKSIZE
         )
         await ws_server_source.start()
 
@@ -66,7 +75,7 @@ async def main():
         input_devices = LineInAudioSource.list_input_devices()
         mic_device = select_audio_device(input_devices, direction='input')
 
-        ws_client_sink = RawWebSocketClientAudioSink(uri=WEBSOCKET_URI)
+        ws_client_sink = RawWebSocketClientAudioSink(uri=WEBSOCKET_URI, blocksize=BLOCKSIZE)
         await ws_client_sink.start()
         
         mic_source = LineInAudioSource(
@@ -74,7 +83,7 @@ async def main():
             sample_rate=SAMPLE_RATE,
             channels=CHANNELS,
             dtype=DTYPE,
-            chunk_size=CHUNK_SIZE,
+            blocksize=BLOCKSIZE,
             device=mic_device,
             disconnect_callback=ws_client_sink.close
         )

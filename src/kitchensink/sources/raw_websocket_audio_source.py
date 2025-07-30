@@ -28,7 +28,7 @@ class RawWebSocketServerAudioSource(BaseAudioSource):
         self.server_task = None
         self.server = None
 
-    async def _handler(self, websocket, path):
+    async def _handler(self, websocket):
         """
         Handles the WebSocket connection for a single client.
         """

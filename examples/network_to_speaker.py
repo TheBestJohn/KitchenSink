@@ -32,7 +32,8 @@ async def main():
             sink=player_sink.push_chunk,
             disconnect_callback=player_sink.clear,
             port=PORT,
-            gain_factor=GAIN_FACTOR
+            gain_factor=GAIN_FACTOR,
+            blocksize=480  # 480 frames * 2 bytes/frame = 960 bytes
         )
 
         # 3. Start the source server

@@ -48,14 +48,20 @@ class RawWebSocketClientAudioSink(BaseAudioSink):
         while not self._is_closed.is_set():
             try:
                 chunk = self._buffer.popleft()
-                if self._websocket and self._websocket.open:
-                    future = asyncio.run_coroutine_threadsafe(self._send_chunk(chunk), self._loop)
-                    future.result()  # Wait for the send to complete
+                # Attempt to send the chunk. If the connection is closed, this will raise an exception.
+                future = asyncio.run_coroutine_threadsafe(self._send_chunk(chunk), self._loop)
+                future.result()  # Wait for the send to complete
             except IndexError:
-                time.sleep(0.005)
+                time.sleep(0.005) # Wait for more data to arrive
+            except websockets.exceptions.ConnectionClosed:
+                print("WebSocketClientAudioSink: Connection closed. Stopping thread.")
+                self._is_closed.set()
+                break
             except Exception as e:
-                print(f"WebSocketClientAudioSink: Error in send loop: {e}")
-                self.close()
+                # Catch any other exception, log it, and stop the thread gracefully.
+                print(f"WebSocketClientAudioSink: Error in send loop: {e}. Stopping thread.")
+                self._is_closed.set()
+                break
 
     async def _send_chunk(self, chunk: np.ndarray):
         """Coroutine to send a chunk over the WebSocket."""

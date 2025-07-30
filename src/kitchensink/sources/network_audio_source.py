@@ -36,9 +36,13 @@ class TCPServerAudioSource(BaseAudioSource):
 
         try:
             while True:
-                data = await reader.readexactly(chunk_bytes)
-                if not data:
-                    break
+                try:
+                    data = await reader.readexactly(chunk_bytes)
+                    if not data:
+                        break # Should not happen with readexactly, but good practice
+                except (asyncio.IncompleteReadError, ConnectionAbortedError, ConnectionResetError) as e:
+                    print(f"Client {addr} disconnected: {e}")
+                    break # Exit the loop cleanly on disconnection
 
                 audio_chunk = np.frombuffer(data, dtype=np.int16)
 
@@ -50,10 +54,8 @@ class TCPServerAudioSource(BaseAudioSource):
 
                 self.sink(processed_chunk)
 
-        except asyncio.IncompleteReadError:
-            print(f"Client {addr} disconnected unexpectedly (connection closed).")
         except Exception as e:
-            print(f"An error occurred with client {addr}: {e}")
+            print(f"An unexpected error occurred with client {addr}: {e}")
         finally:
             print(f"Closing connection from {addr}")
             if self.disconnect_callback:

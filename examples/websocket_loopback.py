@@ -19,7 +19,8 @@ WEBSOCKET_URI = f"ws://{HOST}:{PORT}"
 SAMPLE_RATE = 16000
 CHANNELS = 1
 DTYPE = 'int16'
-CHUNK_SIZE = 1024
+# Use a smaller blocksize for lower latency, suitable for a loopback test
+BLOCKSIZE = 480
 
 
 async def main():
@@ -48,7 +49,12 @@ async def main():
         output_devices = AudioPlayerSink.list_output_devices()
         speaker_device = select_audio_device(output_devices, direction='output')
         
-        speaker_sink = AudioPlayerSink(sample_rate=SAMPLE_RATE, channels=CHANNELS, device=speaker_device)
+        speaker_sink = AudioPlayerSink(
+            sample_rate=SAMPLE_RATE, 
+            channels=CHANNELS, 
+            device=speaker_device,
+            blocksize=BLOCKSIZE
+        )
         await speaker_sink.start()
 
         # Define a callback for the server to handle non-audio messages
@@ -61,7 +67,8 @@ async def main():
             disconnect_callback=speaker_sink.clear,
             on_message_callback=handle_server_message,
             host=HOST,
-            port=PORT
+            port=PORT,
+            blocksize=BLOCKSIZE
         )
         await ws_server_source.start()
 
@@ -74,7 +81,7 @@ async def main():
         mic_device = select_audio_device(input_devices, direction='input')
 
         # The WebSocket client sink will send data it receives from the mic
-        ws_client_sink = TypedWebSocketClientAudioSink(uri=WEBSOCKET_URI)
+        ws_client_sink = TypedWebSocketClientAudioSink(uri=WEBSOCKET_URI, blocksize=BLOCKSIZE)
         await ws_client_sink.start()
 
         # --- Demonstrate Sending a Non-Audio Message ---
@@ -86,7 +93,7 @@ async def main():
             sample_rate=SAMPLE_RATE,
             channels=CHANNELS,
             dtype=DTYPE,
-            chunk_size=CHUNK_SIZE,
+            blocksize=BLOCKSIZE,
             device=mic_device,
             disconnect_callback=ws_client_sink.close # If mic stops, close the client
         )

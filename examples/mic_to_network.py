@@ -19,7 +19,8 @@ SERVER_PORT = 8123
 SAMPLE_RATE = 16000
 CHANNELS = 1
 DTYPE = 'int16'
-CHUNK_SIZE = 1024
+# This must match the `blocksize` on the server (network_to_speaker.py)
+BLOCKSIZE = 480 # 480 frames * 2 bytes/frame = 960 bytes
 
 
 async def main():
@@ -35,12 +36,13 @@ async def main():
         input_devices = LineInAudioSource.list_input_devices()
         selected_device = select_audio_device(input_devices, direction='input')
 
-        # 2. Create the network sink
+        # 2. Create the network sink, passing the blocksize for consistency
         network_sink = TCPClientAudioSink(
             host=SERVER_HOST,
             port=SERVER_PORT,
             sample_rate=SAMPLE_RATE,
-            channels=CHANNELS
+            channels=CHANNELS,
+            blocksize=BLOCKSIZE
         )
         await network_sink.start()
 
@@ -50,7 +52,7 @@ async def main():
             sample_rate=SAMPLE_RATE,
             channels=CHANNELS,
             dtype=DTYPE,
-            chunk_size=CHUNK_SIZE,
+            blocksize=BLOCKSIZE,
             device=selected_device,
             disconnect_callback=network_sink.close # Close the sink when the source stops
         )
