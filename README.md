@@ -1,17 +1,38 @@
 # KitchenSink Audio Library
 
+[**Read the Docs**](https://thebestjohn.github.io/KitchenSink/index.html)
+
+---
 ## Disclaimer
 
 This is a personal project provided as-is for educational and experimental purposes. It makes no claims of suitability for any particular use case and is not guaranteed to work in every environment. While it aims to be a useful tool, it should not be considered a production-ready, professionally supported library.
 
-A modular Python library for building simple audio processing pipelines. `KitchenSink` provides a set of plug-and-play "sources" and "sinks" to easily capture, send, receive, and play audio.
+A modular Python library for building simple audio processing pipelines. `KitchenSink` provides a set of plug-and-play components to easily capture, process, send, receive, and play audio.
 
 ## Core Concepts
 
--   **Sources**: Originate audio data. Examples include capturing from a microphone (`LineInAudioSource`) or receiving data from a network stream (`TCPServerAudioSource`).
--   **Sinks**: Terminate audio data. Examples include playing audio through speakers (`AudioPlayerSink`) or sending data to a network stream (`TCPClientAudioSink`).
+The library is built around a simple and flexible pipeline model.
 
-All sources and sinks are built on a common base class, making them easy to extend and interchange.
+### 1. Sources: Where Audio Begins
+
+A **Source** is where audio data originates.
+- `LineInAudioSource`: Captures audio from a microphone.
+- `TCPServerAudioSource` / `WebSocketServerAudioSource`: Receives audio from a network connection.
+
+### 2. Sinks & Consumers: Where Audio Goes
+
+A **Sink** is a destination for audio. This can be a traditional sink that outputs audio, or any other function that "consumes" the audio data.
+- `AudioPlayerSink`: Plays audio to your speakers.
+- `TCPClientAudioSink` / `WebSocketClientAudioSink`: Sends audio over a network connection.
+- `Your Own Function`: A function that performs analysis, like speech-to-text.
+
+### 3. Building Pipelines
+
+You connect components by passing a callable (like a sink's `push_chunk` method or your own function) to a source's constructor. This allows you to create chains:
+
+- **Simple Pipeline**: `[Mic Source] -> [Network Sink]`
+- **Middleware**: Chain components to process audio mid-stream. `[Mic Source] -> [Volume Monitor] -> [Network Sink]`
+- **Consumers**: End a pipeline with a function instead of a sink. `[Network Source] -> [Speech-to-Text Function]`
 
 ## Installation
 
