@@ -1,4 +1,3 @@
-
 import collections
 import sys
 import numpy as np
@@ -126,7 +125,6 @@ if platform.system() == "Windows":
         _winsdk_available = True
     except ImportError:
         print("Warning: winsdk library not found. Falling back to sounddevice.")
-        print("         For optimal performance on Windows, please run: pip install winsdk")
         _winsdk_available = False
 
 if _winsdk_available:
@@ -148,7 +146,6 @@ if _winsdk_available:
             self._playback_thread = None
 
         async def start(self):
-            # ... (implementation remains the same)
             print("WinSdkPlayer: Initializing audio graph...")
             settings = wma.AudioGraphSettings(wma.AudioRenderCategory.MEDIA)
             create_graph_result = await wma.AudioGraph.create_async(settings)
@@ -170,7 +167,6 @@ if _winsdk_available:
             print("WinSdkPlayer: Audio graph started.")
 
         def _playback_loop(self):
-            # ... (implementation remains the same)
             while not self._is_closed.is_set():
                 try:
                     chunk = self._buffer.popleft()
@@ -180,7 +176,6 @@ if _winsdk_available:
             print("WinSdkPlayer: Playback loop finished.")
 
         def _submit_chunk(self, chunk: np.ndarray):
-            # ... (implementation remains the same)
             num_bytes = chunk.nbytes
             frame = wmedia.AudioFrame(num_bytes)
             with frame.lock_buffer(wmedia.AudioBufferAccessMode.WRITE) as audio_buffer:
@@ -190,7 +185,6 @@ if _winsdk_available:
             self._frame_input_node.add_frame(frame)
 
         def close(self):
-            # ... (implementation remains the same)
             super().close()
             print("WinSdkPlayer: Closing audio graph...")
             if self._playback_thread and self._playback_thread.is_alive():

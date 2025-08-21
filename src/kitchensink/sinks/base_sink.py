@@ -1,6 +1,7 @@
 
 import collections
 import threading
+import asyncio
 
 class BaseAudioSink:
     """
@@ -11,25 +12,23 @@ class BaseAudioSink:
     speakers, writing them to a file, or broadcasting them over a network.
     """
 
-    def __init__(self, sample_rate=16000, channels=1, dtype='int16', blocksize=None):
+    def __init__(self, sample_rate=16000, channels=1, dtype='int16', blocksize=None, max_buffer_size=20):
         """
         Initializes the BaseAudioSink.
 
         Args:
             sample_rate (int): The sample rate of the audio (e.g., 16000 for speech).
             channels (int): The number of audio channels (e.g., 1 for mono).
-            dtype (str): The data type of the audio samples (e.g., 'int16').
-            blocksize (int, optional): The preferred number of frames per chunk
-            for this sink. A source can use this to optimize the data flow.
-            Defaults to None (no preference).
+            dtype (str or numpy.dtype): The data type of the audio samples (e.g., 'int16', 'int32', 'float32').
+            blocksize (int, optional): The preferred number of frames per chunk for this sink.
+            max_buffer_size (int, optional): The maximum number of chunks to hold in the buffer
+                                             before dropping the oldest. Defaults to 20.
         """
-        if dtype != 'int16':
-            raise ValueError("Only 'int16' dtype is currently supported for sinks.")
-        
         self._sample_rate = sample_rate
         self._channels = channels
         self._dtype = dtype
         self.blocksize = blocksize
+        self.max_buffer_size = max_buffer_size
         self._buffer = collections.deque()
         self._is_closed = threading.Event()
 
@@ -41,16 +40,26 @@ class BaseAudioSink:
         """
         pass
 
-    def push_chunk(self, chunk):
+    async def push_chunk(self, chunk):
         """
-        Receives an audio chunk and adds it to the internal buffer for processing.
-        This is the primary method used to feed data to the sink.
+        Asynchronously receives an audio chunk and adds it to the internal buffer.
+        If the buffer is full, this method will wait until there is space,
+        creating backpressure to prevent the source from overwhelming the sink.
         
         Args:
             chunk (np.ndarray): A NumPy array containing the audio data for the chunk.
         """
         if self._is_closed.is_set():
             return
+
+        # --- Backpressure Mechanism ---
+        # If the buffer is full, wait for the consumer (e.g., the audio callback)
+        # to make some space.
+        if self.max_buffer_size is not None:
+            while len(self._buffer) >= self.max_buffer_size:
+                if self._is_closed.is_set(): return # Stop waiting if sink is closed
+                await asyncio.sleep(0.01) # Wait 10ms
+
         self._buffer.append(chunk)
 
     def clear(self):

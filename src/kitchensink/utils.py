@@ -1,5 +1,6 @@
+import sounddevice as sd
 
-def select_audio_device(device_list, direction='input'):
+def select_audio_device(direction='input'):
     """
     Interactively prompts the user to select an audio device from a list.
 
@@ -10,6 +11,22 @@ def select_audio_device(device_list, direction='input'):
     Returns:
         The device name (str) or index (int) of the selected device, or None if no selection is made.
     """
+    if direction == "output":
+        try:
+            devices = sd.query_devices()
+            device_list = [d for d in devices if d.get('max_output_channels', 0) > 0]
+        except Exception as e:
+            print(f"Could not query audio devices: {e}")
+            device_list = []    
+    else:
+        try:
+            devices = sd.query_devices()
+            # Filter for devices with at least one input channel
+            device_list = [device for device in devices if device.get('max_input_channels', 0) > 0]
+        except Exception as e:
+            print(f"Could not query audio devices: {e}")
+            device_list = []    
+        
     print(f"\n--- Select an audio {direction} device ---")
     if not device_list:
         print(f"No {direction} devices found.")
@@ -36,7 +53,7 @@ def select_audio_device(device_list, direction='input'):
             if 0 <= choice < len(device_list):
                 selected_device_name = device_list[choice]['name']
                 print(f"Selected device: {selected_device_name}")
-                return selected_device_name # Return the name for sounddevice
+                return device_list[choice]                
             else:
                 print("Invalid choice. Please try again.")
         except ValueError:
