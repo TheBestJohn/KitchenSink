@@ -23,7 +23,7 @@ if _sounddevice_available:
         This is the default fallback player for non-Windows systems or when the
         ``winsdk`` is not installed.
         """
-        def __init__(self, *args, device=None, **kwargs):
+        def __init__(self, *args, device, **kwargs):
             super().__init__(*args, **kwargs)
             self.device = device
             self._stream = None
@@ -31,10 +31,11 @@ if _sounddevice_available:
 
         async def start(self):
             """Initializes and starts the ``sounddevice`` output stream."""
-            device_info = f" on device '{self.device}'" if self.device else " on default device"
+            device_info = f" on device '{self.device.get('name')}'" if self.device else " on default device"
             print(f"SoundDevicePlayer: Starting audio stream{device_info}.")
+            device_index = self.device.get('index')
             self._stream = sd.OutputStream(
-                device=self.device,
+                device=device_index,
                 samplerate=self._sample_rate,
                 channels=self._channels,
                 dtype=self._dtype,

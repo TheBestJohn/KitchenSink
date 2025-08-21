@@ -26,13 +26,21 @@ class LineInAudioSource(BaseAudioSource):
         """
         self.device = device or os.environ.get("KS_INPUT_DEVICE")
 
+        if isinstance(self.device, dict):
+            device_index = self.device.get('index')
+        elif isinstance(self.device, (int, str)):
+            device_index = self.device
+        else:
+            device_index = None
+
+
         # Query device information to determine the actual settings to use
         try:
-            device_info = sd.query_devices(self.device, 'input')
+            device_info = sd.query_devices(device_index, 'input')
         except ValueError:
-            print(f"Warning: Input device '{self.device}' not found. Using default device.")
+            print(f"Warning: Input device '{self.device.get('name')}' not found. Using default device.")
             self.device = None
-            device_info = sd.query_devices(self.device, 'input')
+            device_info = sd.query_devices(device_index, 'input')
 
         # Determine the final audio parameters based on user preference and device capability
         final_samplerate = sample_rate or int(device_info['default_samplerate'])
@@ -53,7 +61,7 @@ class LineInAudioSource(BaseAudioSource):
             blocksize=blocksize
         )
 
-        # The stream and thread for capturing audio
+        self._device_index = device_index  # Store the resolved index for later use
         self._stream = None
         self._stop_event = threading.Event()
         self._thread = threading.Thread(target=self._capture_loop, daemon=True)
@@ -79,11 +87,15 @@ class LineInAudioSource(BaseAudioSource):
 
     def _capture_loop(self):
         """The main loop for the audio capture thread."""
-        device_info = f" on device '{self.device}'" if self.device else ""
-        print(f"LineInAudioSource: Starting audio capture{device_info}.")
+        name_info = ""
+        if isinstance(self.device, dict):
+            name_info = f" on device '{self.device.get('name')}' (index={self.device.get('index')})"
+        elif self._device_index is not None:
+            name_info = f" on device index {self._device_index}"
+        print(f"LineInAudioSource: Starting audio capture{name_info}.")
         try:
             self._stream = sd.InputStream(
-                device=self.device,
+                device=self._device_index,
                 samplerate=self.sample_rate,
                 channels=self.channels,
                 dtype=self.dtype,
